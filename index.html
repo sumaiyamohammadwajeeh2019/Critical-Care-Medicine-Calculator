@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Critical Care Calculator - ICU</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a3a6b">
+<style>
+:root { --primary:#1a3a6b; --accent:#1f6fa3; --bg:#f4f7fb; --card:#ffffff; --text:#1b2430; }
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);}
+header{display:flex;align-items:center;gap:14px;padding:14px 20px;background:var(--primary);color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.15);}
+header img{width:48px;height:48px;}
+header h1{margin:0;font-size:20px;}
+header small{opacity:.85;font-size:12px;margin-left:8px;}
+nav.tabs{display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;background:#fff;border-bottom:1px solid #dde3ee;position:sticky;top:0;z-index:5;}
+nav.tabs button{padding:8px 14px;border:1px solid #cfd8e6;background:#fff;border-radius:8px;cursor:pointer;font-size:13px;}
+nav.tabs button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+main{padding:16px;max-width:980px;margin:0 auto;}
+.tab{display:none;}
+.tab.active{display:block;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;}
+.card{background:var(--card);border:1px solid #dde3ee;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.card h3{margin:0 0 10px;font-size:15px;color:var(--primary);}
+.row{display:flex;align-items:center;gap:8px;margin:6px 0;}
+.row label{flex:1;font-size:13px;}
+.row input{width:110px;padding:6px;border:1px solid #cfd8e6;border-radius:6px;}
+.card button{margin-top:8px;padding:7px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;}
+.result{margin-top:8px;font-size:13px;font-weight:600;color:var(--primary);min-height:18px;word-break:break-word;}
+.formula{margin-top:6px;font-size:11px;color:#6b7280;word-break:break-word;font-family:monospace;}
+</style>
+</head>
+<body>
+<header>
+  <img src="logo.png" alt="ICU logo">
+  <div>
+    <h1>Critical Care Calculator</h1>
+    <small>For ICU / Critical Care Medicine</small>
+  </div>
+</header>
+<nav class="tabs" id="tabs"></nav>
+<main id="content"></main>
+
+<script>
+const TABS = [
+  {id:'scores', name:'Scores'},
+  {id:'hemo', name:'Hemo'},
+  {id:'vent', name:'Vent'},
+  {id:'renal', name:'Renal'},
+  {id:'acid', name:'Acid-Base'},
+  {id:'dose', name:'Dosing'},
+  {id:'fluid', name:'Fluids/Nut'},
+  {id:'conv', name:'Convert'},
+];
+const content = document.getElementById('content');
+const tabsNav = document.getElementById('tabs');
+TABS.forEach((t,i)=>{
+  const b=document.createElement('button');
+  b.textContent=t.name;
+  b.onclick=()=>showTab(t.id);
+  if(i===0)b.classList.add('active');
+  tabsNav.appendChild(b);
+  const sec=document.createElement('section');
+  sec.id='tab-'+t.id; sec.className='tab'+(i===0?' active':'');
+  const grid=document.createElement('div'); grid.className='grid'; grid.id='grid-'+t.id;
+  sec.appendChild(grid); content.appendChild(sec);
+});
+function showTab(id){
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  document.querySelectorAll('nav.tabs button').forEach((b,i)=>b.classList.toggle('active', TABS[i].id===id));
+}
+function N(v){ const x=parseFloat(v); return isNaN(x)?0:x; }
+function F(x,nd=2){ if(typeof x!=='number'||isNaN(x)||!isFinite(x)) return 'n/a'; return x.toFixed(nd); }
+function card(tabId,title,fields,calc){
+  const grid=document.getElementById('grid-'+tabId);
+  const c=document.createElement('div'); c.className='card';
+  const h=document.createElement('h3'); h.textContent=title; c.appendChild(h);
+  const inputs={};
+  fields.forEach(([lbl,def])=>{
+    const row=document.createElement('div'); row.className='row';
+    const l=document.createElement('label'); l.textContent=lbl;
+    const inp=document.createElement('input'); inp.type='text';
+    const key='icu:'+tabId+':'+title+':'+lbl;
+    const saved=localStorage.getItem(key);
+    inp.value=(saved!==null)?saved:def;
+    inp.addEventListener('change',()=>localStorage.setItem(key,inp.value));
+    inputs[lbl]=inp;
+    row.appendChild(l); row.appendChild(inp); c.appendChild(row);
+  });
+  const btn=document.createElement('button'); btn.textContent='Calculate';
+  const res=document.createElement('div'); res.className='result';
+  btn.onclick=()=>{ try{ res.textContent=calc(inputs); }catch(e){ res.textContent='Error: '+e.message; } };
+  c.appendChild(btn); c.appendChild(res);
+  const fm=document.createElement('div'); fm.className='formula'; fm.textContent='Formula: '+calc.toString().replace(/\s+/g,' ');
+  c.appendChild(fm);
+  grid.appendChild(c);
+}
+
+
+card('scores','Glasgow Coma Scale (GCS)',[['Eye opening (1-4)',4],['Verbal (1-5)',5],['Motor (1-6)',6]],inp=>{
+  const s=N(inp['Eye opening (1-4)'].value)+N(inp['Verbal (1-5)'].value)+N(inp['Motor (1-6)'].value);
+  return 'GCS = '+s+'  |  '+(s<=8?'Severe (<=8)':s<=12?'Moderate (9-12)':'Mild (13-15)');
+});
+card('scores','SOFA Score',[['Resp score 0-4',0],['Coag score 0-4',0],['Liver score 0-4',0],['CV score 0-4',0],['CNS score 0-4',0],['Renal score 0-4',0]],inp=>{
+  const s=Object.values(inp).reduce((a,i)=>a+N(i.value),0);
+  return 'SOFA = '+s+'  |  Mortality est: '+(s>=11?'~33%':s>=9?'~20%':s>=7?'~10%':'<10%');
+});
+card('scores','qSOFA',[['RR>=22 (1/0)',0],['Altered mentation (1/0)',0],['SBP<=100 (1/0)',0]],inp=>{
+  const s=Object.values(inp).reduce((a,i)=>a+N(i.value),0);
+  return 'qSOFA = '+s+'  |  '+(s>=2?'High risk (>=2)':'Low risk');
+});
+card('scores','CURB-65',[['Confusion (1/0)',0],['Urea>19 (1/0)',0],['RR>=30 (1/0)',0],['SBP<90/DBP<=60 (1/0)',0],['Age>=65 (1/0)',0]],inp=>{
+  const s=Object.values(inp).reduce((a,i)=>a+N(i.value),0);
+  return 'CURB-65 = '+s+'  |  Mortality: '+(s<=1?'1.5%':s==2?'9.2%':s==3?'14.5%':'40%+');
+});
+card('scores','Wells Score (PE)',[['Clinical signs DVT (3)',0],['PE most likely (3)',0],['HR>100 (1.5)',0],['Immobilization 4wk (1.5)',0],['Prev PE/DVT (1.5)',0],['Hemoptysis (1)',0],['Malignancy (1)',0]],inp=>{
+  const s=Object.values(inp).reduce((a,i)=>a+N(i.value),0);
+  return 'Wells = '+F(s,1)+'  |  '+(s>4?'PE likely (>4)':'PE unlikely (<=4)');
+});
+card('scores','CHA2DS2-VASc',[['CHF (1)',0],['HTN (1)',0],['Age>=75 (2)',0],['Diabetes (1)',0],['Stroke/TIA (2)',0],['Vascular disease (1)',0],['Age 65-74 (1)',0],['Female (1)',0]],inp=>{
+  const s=Object.values(inp).reduce((a,i)=>a+N(i.value),0);
+  return 'CHA2DS2-VASc = '+Math.round(s);
+});
+card('scores','HAS-BLED',[['HTN (1)',0],['Abnormal renal (1)',0],['Abnormal liver (1)',0],['Stroke (1)',0],['Bleeding history (1)',0],['Labile INR (1)',0],['Elderly>65 (1)',0],['Drugs/alcohol (1-2)',0]],inp=>{
+  const s=Object.values(inp).reduce((a,i)=>a+N(i.value),0);
+  return 'HAS-BLED = '+Math.round(s)+'  |  '+(s>=3?'High bleed risk (>=3)':'Low-moderate');
+});
+card('scores','NIHSS (total)',[['Total NIHSS',0]],inp=>{
+  const s=N(inp['Total NIHSS'].value);
+  return 'NIHSS = '+Math.round(s)+'  |  '+(s<=4?'Minor 1-4':s<=15?'Moderate 5-15':s<=20?'Moderate-severe 16-20':'Severe 21-42');
+});
+card('scores','RASS',[['RASS score (-5 to 4)',0]],inp=>{
+  const s=N(inp['RASS score (-5 to 4)'].value);
+  const labels={'-5':'Unarousable','-4':'Deep sedation','-3':'Moderate sedation','-2':'Light sedation','-1':'Drowsy','0':'Alert & calm','1':'Restless','2':'Agitated','3':'Very agitated','4':'Combative'};
+  return 'RASS = '+Math.round(s)+'  |  '+(labels[String(Math.round(s))]||'');
+});
+card('scores','Braden Scale',[['Sensory (1-4)',4],['Moisture (1-4)',4],['Activity (1-4)',4],['Mobility (1-4)',4],['Nutrition (1-4)',4],['Friction (1-3)',3]],inp=>{
+  const s=Object.values(inp).reduce((a,i)=>a+N(i.value),0);
+  return 'Braden = '+Math.round(s)+'  |  '+(s<=9?'Very high risk (<=9)':s<=12?'High risk (10-12)':s<=14?'Moderate (13-14)':s<=18?'Mild (15-18)':'No risk');
+});
+
+
+
+card('scores','APACHE II',[['Temperature C',37],['MAP mmHg',80],['Heart rate',80],['Resp rate',16],['FiO2 (frac)',0.21],['PaO2 mmHg',90],['A-a grad',0],['Arterial pH',7.40],['Sodium',140],['Potassium',4.0],['Creatinine mg/dL',1.0],['Acute renal failure (1/0)',0],['Hematocrit %',40],['WBC x1000',8],['GCS',15],['Age',50],['Chronic pts (0/2/5)',0]],inp=>{
+  const g=k=>N(inp[k].value);
+  let aps=0;
+  const t=g('Temperature C'); if(t>=41)aps+=4;else if(t>=39)aps+=3;else if(t>=38.5)aps+=1;else if(t>=36)aps+=0;else if(t>=34)aps+=1;else if(t>=32)aps+=2;else if(t>=30)aps+=3;else aps+=4;
+  const m=g('MAP mmHg'); if(m>=160)aps+=4;else if(m>=130)aps+=3;else if(m>=110)aps+=2;else if(m>=70)aps+=0;else if(m>=50)aps+=2;else aps+=4;
+  const hr=g('Heart rate'); if(hr>=180)aps+=4;else if(hr>=140)aps+=3;else if(hr>=110)aps+=2;else if(hr>=70)aps+=0;else if(hr>=55)aps+=2;else if(hr>=40)aps+=3;else aps+=4;
+  const rr=g('Resp rate'); if(rr>=50)aps+=4;else if(rr>=35)aps+=3;else if(rr>=25)aps+=2;else if(rr>=12)aps+=0;else if(rr>=10)aps+=1;else if(rr>=6)aps+=2;else aps+=4;
+  const fio2=g('FiO2 (frac)');const pao2=g('PaO2 mmHg');const aag=g('A-a grad');
+  if(fio2>=0.5){ if(aag>=500)aps+=4;else if(aag>=350)aps+=3;else if(aag>=200)aps+=2; } else { if(pao2>70)aps+=0;else if(pao2>=61)aps+=1;else if(pao2>=55)aps+=3;else aps+=4; }
+  const ph=g('Arterial pH'); if(ph>=7.7)aps+=4;else if(ph>=7.6)aps+=3;else if(ph>=7.5)aps+=1;else if(ph>=7.33)aps+=0;else if(ph>=7.25)aps+=2;else if(ph>=7.15)aps+=3;else aps+=4;
+  const na=g('Sodium'); if(na>=180)aps+=4;else if(na>=160)aps+=3;else if(na>=155)aps+=2;else if(na>=150)aps+=1;else if(na>=130)aps+=0;else if(na>=120)aps+=2;else if(na>=111)aps+=3;else aps+=4;
+  const k=g('Potassium'); if(k>=7)aps+=4;else if(k>=6)aps+=3;else if(k>=5.5)aps+=1;else if(k>=3.5)aps+=0;else if(k>=3)aps+=1;else if(k>=2.5)aps+=2;else aps+=4;
+  const cr=g('Creatinine mg/dL');const arf=g('Acute renal failure (1/0)');
+  let sc= cr>=3.5?4: cr>=2?3: cr>=1.5?2: cr>=0.6?0:2; if(arf && cr>=1.5) sc*=2; aps+=sc;
+  const hct=g('Hematocrit %'); if(hct>=60)aps+=4;else if(hct>=50)aps+=2;else if(hct>=46)aps+=1;else if(hct>=30)aps+=0;else if(hct>=20)aps+=2;else aps+=4;
+  const wbc=g('WBC x1000'); if(wbc>=40)aps+=4;else if(wbc>=20)aps+=2;else if(wbc>=15)aps+=1;else if(wbc>=3)aps+=0;else if(wbc>=1)aps+=2;else aps+=4;
+  const gcs=g('GCS'); aps+=(15-gcs);
+  const age=g('Age'); const ap= age<45?0: age<=54?2: age<=64?3: age<=74?5:6;
+  const chronic=g('Chronic pts (0/2/5)');
+  const total=Math.round(aps+ap+chronic);
+  return 'APACHE II = '+total+'  (APS='+Math.round(aps)+', age='+ap+', chronic='+Math.round(chronic)+')';
+});
+
+
+
+card('hemo','MAP',[['SBP',120],['DBP',80]],inp=>{const m=(N(inp['SBP'].value)+2*N(inp['DBP'].value))/3;return 'MAP = '+F(m)+' mmHg';});
+card('hemo','CPP',[['MAP',80],['ICP',10]],inp=>{const c=N(inp['MAP'].value)-N(inp['ICP'].value);return 'CPP = '+F(c)+' mmHg';});
+card('hemo','Shock Index',[['HR',100],['SBP',100]],inp=>{const s=N(inp['HR'].value)/N(inp['SBP'].value);return 'SI = '+F(s)+'  |  '+(s>0.7?'Shock if >0.7':'Normal');});
+card('hemo','Cardiac Output',[['HR',80],['Stroke volume mL',70]],inp=>{const c=N(inp['HR'].value)*N(inp['Stroke volume mL'].value)/1000;return 'CO = '+F(c)+' L/min';});
+card('hemo','SVR',[['MAP',80],['CVP',8],['CO L/min',5]],inp=>{const s=(N(inp['MAP'].value)-N(inp['CVP'].value))/N(inp['CO L/min'].value)*80;return 'SVR = '+F(s)+' dyn·s/cm5';});
+card('hemo','PVR',[['MPAP',20],['PAWP',10],['CO L/min',5]],inp=>{const p=(N(inp['MPAP'].value)-N(inp['PAWP'].value))/N(inp['CO L/min'].value)*80;return 'PVR = '+F(p)+' dyn·s/cm5';});
+card('hemo','Oxygen Delivery (DO2)',[['CO L/min',5],['Hb g/dL',10],['SaO2 %',95],['PaO2 mmHg',80]],inp=>{
+  const cao2=1.34*N(inp['Hb g/dL'].value)*N(inp['SaO2 %'].value)/100+0.003*N(inp['PaO2 mmHg'].value);
+  const do2=cao2*N(inp['CO L/min'].value)*10;
+  return 'CaO2='+F(cao2,3)+' mL/dL  DO2='+F(do2)+' mL/min';
+});
+card('hemo','O2 Extraction Ratio',[['DO2',1000],['VO2',250]],inp=>{const e=N(inp['VO2'].value)/N(inp['DO2'].value)*100;return 'O2ER = '+F(e)+' %';});
+card('hemo','SVV',[['SVmax',70],['SVmin',50]],inp=>{const m=(N(inp['SVmax'].value)+N(inp['SVmin'].value))/2;const s=(N(inp['SVmax'].value)-N(inp['SVmin'].value))/m*100;return 'SVV = '+F(s)+' %';});
+card('vent','P/F Ratio',[['PaO2 mmHg',80],['FiO2 (frac)',0.4]],inp=>{
+  const pf=N(inp['PaO2 mmHg'].value)/N(inp['FiO2 (frac)'].value);
+  return 'P/F = '+F(pf)+'  |  '+(pf>=400?'Normal':pf>=200?'Mild ARDS':pf>=100?'Moderate':'Severe');
+});
+card('vent','A-a Gradient',[['FiO2',0.21],['PaO2',90],['PaCO2',40],['Pb',760],['PH2O',47]],inp=>{
+  const pao2=N(inp['FiO2'].value)*(N(inp['Pb'].value)-N(inp['PH2O'].value))-N(inp['PaCO2'].value)/0.8;
+  return 'A-a = '+F(pao2-N(inp['PaO2'].value))+' mmHg';
+});
+card('vent','RSBI',[['RR',20],['Vt L',0.5]],inp=>{const r=N(inp['RR'].value)/N(inp['Vt L'].value);return 'RSBI = '+F(r)+'  |  '+(r<105?'Likely wean':'Not ready');});
+card('vent','Static Compliance',[['Vt mL',500],['Pplat cmH2O',20],['PEEP cmH2O',5]],inp=>{const c=N(inp['Vt mL'].value)/(N(inp['Pplat cmH2O'].value)-N(inp['PEEP cmH2O'].value));return 'Cstat = '+F(c)+' mL/cmH2O';});
+card('vent','Driving Pressure',[['Pplat',20],['PEEP',5]],inp=>{const d=N(inp['Pplat'].value)-N(inp['PEEP'].value);return 'DP = '+F(d)+' cmH2O';});
+card('vent','Minute Ventilation',[['RR',16],['Vt L',0.5]],inp=>{const m=N(inp['RR'].value)*N(inp['Vt L'].value);return 'MV = '+F(m)+' L/min';});
+card('vent','IBW (ARDSnet)',[['Height cm',170],['Sex (M=1/F=0)',1]],inp=>{
+  const h=N(inp['Height cm'].value);const s=N(inp['Sex (M=1/F=0)'].value);
+  const ibw=s===1?50+0.91*(h-152.4):45.5+0.91*(h-152.4);
+  return 'IBW = '+F(ibw)+' kg  |  Vt 6mL/kg = '+F(ibw*6)+' mL';
+});
+card('vent','Dead Space Ratio',[['PaCO2',40],['PETCO2',30]],inp=>{const d=(N(inp['PaCO2'].value)-N(inp['PETCO2'].value))/N(inp['PaCO2'].value);return 'VD/VT = '+F(d);});
+
+
+
+card('renal','CrCl (Cockcroft-Gault)',[['Age',50],['Weight kg',70],['Scr mg/dL',1.0],['Female (1/0)',0]],inp=>{
+  const crcl=(140-N(inp['Age'].value))*N(inp['Weight kg'].value)/(72*N(inp['Scr mg/dL'].value))*(N(inp['Female (1/0)'].value)===1?0.85:1);
+  return 'CrCl = '+F(crcl)+' mL/min';
+});
+card('renal','eGFR (CKD-EPI 2021)',[['Scr mg/dL',1.0],['Age',50],['Female (1/0)',0]],inp=>{
+  const scr=N(inp['Scr mg/dL'].value);const age=N(inp['Age'].value);const fem=N(inp['Female (1/0)'].value)===1;
+  const kappa=fem?0.7:0.9;const alpha=fem?-0.241:-0.302;
+  const egfr=142*Math.pow(Math.min(scr/kappa,1),alpha)*Math.pow(Math.max(scr/kappa,1),-1.200)*Math.pow(0.9938,age)*(fem?1.012:1);
+  return 'eGFR = '+F(egfr)+' mL/min/1.73m2';
+});
+card('renal','Free Water Deficit',[['Weight kg',70],['Na mEq/L',150],['Male(1)/Female(0)',1]],inp=>{
+  const tbw=N(inp['Weight kg'].value)*(N(inp['Male(1)/Female(0)'].value)===1?0.6:0.5);
+  const fwd=tbw*(N(inp['Na mEq/L'].value)/140-1);
+  return 'TBW='+F(tbw)+' L  FWD='+F(fwd)+' L';
+});
+card('renal','Sodium Correction',[['Current Na',150],['Target Na',140],['TBW L',42]],inp=>{
+  const w=N(inp['TBW L'].value)*(N(inp['Current Na'].value)/N(inp['Target Na'].value)-1);
+  return 'Water needed = '+F(w)+' L';
+});
+card('acid','Anion Gap',[['Na',140],['Cl',100],['HCO3',24]],inp=>{
+  const ag=N(inp['Na'].value)-(N(inp['Cl'].value)+N(inp['HCO3'].value));
+  return 'AG = '+F(ag)+'  |  Delta gap = '+F(ag-12);
+});
+card('acid','Delta Ratio',[['Na',140],['Cl',100],['HCO3',24]],inp=>{
+  const ag=N(inp['Na'].value)-(N(inp['Cl'].value)+N(inp['HCO3'].value));
+  const hco3=N(inp['HCO3'].value);
+  if(hco3===24) return 'n/a';
+  return 'Delta ratio = '+F((ag-12)/(24-hco3));
+});
+card('acid','SID',[['Na',140],['K',4.0],['Cl',100]],inp=>{const sid=N(inp['Na'].value)+N(inp['K'].value)-N(inp['Cl'].value);return 'SID = '+F(sid)+' mEq/L';});
+card('acid','Base Excess',[['HCO3',24],['pH',7.40],['Hb',10]],inp=>{const be=N(inp['HCO3'].value)-24.4+(2.3*N(inp['Hb'].value)+7.7)*(N(inp['pH'].value)-7.4);return 'BE = '+F(be)+' mEq/L';});
+card('acid','Osmolar Gap',[['Measured osm',290],['Na',140],['Glucose mg/dL',100],['BUN mg/dL',14]],inp=>{
+  const calc=2*N(inp['Na'].value)+N(inp['Glucose mg/dL'].value)/18+N(inp['BUN mg/dL'].value)/2.8;
+  return 'Calc osm = '+F(calc)+'  |  Gap = '+F(N(inp['Measured osm'].value)-calc);
+});
+
+card('fluid','Maintenance Fluids (Holliday-Segar)',[['Weight kg',70]],inp=>{
+  const w=N(inp['Weight kg'].value);
+  const day=100*Math.min(w,10)+50*Math.max(0,Math.min(w-10,10))+20*Math.max(0,w-20);
+  return '= '+F(day)+' mL/day  ('+F(day/24)+' mL/h)';
+});
+card('fluid','Fluid Deficit',[['Maintenance mL/h',100],['Hours missed',8]],inp=>{const d=N(inp['Maintenance mL/h'].value)*N(inp['Hours missed'].value);return 'Deficit = '+F(d)+' mL';});
+card('fluid','BMI',[['Weight kg',70],['Height m',1.75]],inp=>{const b=N(inp['Weight kg'].value)/Math.pow(N(inp['Height m'].value),2);return 'BMI = '+F(b)+' kg/m2';});
+card('fluid','BSA (DuBois)',[['Weight kg',70],['Height cm',170]],inp=>{const b=0.007184*Math.pow(N(inp['Weight kg'].value),0.425)*Math.pow(N(inp['Height cm'].value),0.725);return 'BSA = '+F(b)+' m2';});
+card('fluid','IBW (Devine)',[['Height in',68],['Male(1)/Female(0)',1]],inp=>{
+  const base=N(inp['Male(1)/Female(0)'].value)===1?50:45.5;
+  const ibw=base+2.3*(N(inp['Height in'].value)-60);
+  return 'IBW = '+F(ibw)+' kg';
+});
+card('fluid','BMR (Harris-Benedict)',[['Weight kg',70],['Height cm',170],['Age',50],['Male(1)/Female(0)',1]],inp=>{
+  const w=N(inp['Weight kg'].value),h=N(inp['Height cm'].value),a=N(inp['Age'].value),m=N(inp['Male(1)/Female(0)'].value)===1;
+  const bmr=m?66.5+13.75*w+5.003*h-6.75*a:655.1+9.563*w+1.85*h-4.676*a;
+  return 'BMR = '+F(bmr)+' kcal/day  (x1.2-1.5 stress)';
+});
+card('fluid','Protein needs',[['Weight kg',70],['g/kg',1.5]],inp=>{const p=N(inp['Weight kg'].value)*N(inp['g/kg'].value);return 'Protein = '+F(p)+' g/day';});
+card('conv','C to F',[['Celsius',37]],inp=>{return '= '+F(N(inp['Celsius'].value)*9/5+32)+' F';});
+card('conv','F to C',[['Fahrenheit',98.6]],inp=>{return '= '+F((N(inp['Fahrenheit'].value)-32)*5/9)+' C';});
+card('conv','lb to kg',[['lb',154]],inp=>{return '= '+F(N(inp['lb'].value)*0.453592)+' kg';});
+card('conv','kg to lb',[['kg',70]],inp=>{return '= '+F(N(inp['kg'].value)/0.453592)+' lb';});
+card('conv','in to cm',[['inches',68]],inp=>{return '= '+F(N(inp['inches'].value)*2.54)+' cm';});
+card('conv','cm to in',[['cm',170]],inp=>{return '= '+F(N(inp['cm'].value)/2.54)+' in';});
+card('conv','mmHg to cmH2O',[['mmHg',10]],inp=>{return '= '+F(N(inp['mmHg'].value)*1.36)+' cmH2O';});
+card('conv','cmH2O to mmHg',[['cmH2O',13.6]],inp=>{return '= '+F(N(inp['cmH2O'].value)/1.36)+' mmHg';});
+
+
+
+card('dose','Norepinephrine (mcg/min)',[['Dose mcg/kg/min',0.1],['Weight kg',70]],inp=>{const r=N(inp['Dose mcg/kg/min'].value)*N(inp['Weight kg'].value);return 'Rate = '+F(r)+' mcg/min';});
+card('dose','Norepi mL/h (conc mcg/mL)',[['mcg/min',7],['Conc mcg/mL',16]],inp=>{const r=N(inp['mcg/min'].value)*60/N(inp['Conc mcg/mL'].value);return '= '+F(r)+' mL/h';});
+card('dose','Vasopressin (units/h)',[['units/min',0.03]],inp=>{return '= '+F(N(inp['units/min'].value)*60)+' units/h';});
+card('dose','Propofol (mg/h)',[['mcg/kg/min',25],['Weight kg',70]],inp=>{const r=N(inp['mcg/kg/min'].value)*N(inp['Weight kg'].value)*60/1000;return '= '+F(r)+' mg/h';});
+card('dose','Fentanyl (mcg/h)',[['mcg/kg/h',1],['Weight kg',70]],inp=>{const r=N(inp['mcg/kg/h'].value)*N(inp['Weight kg'].value);return '= '+F(r)+' mcg/h';});
+card('dose','Midazolam (mg/h)',[['mg/kg/h',0.05],['Weight kg',70]],inp=>{const r=N(inp['mg/kg/h'].value)*N(inp['Weight kg'].value);return '= '+F(r)+' mg/h';});
+card('dose','Insulin infusion (units/h)',[['units/kg/h',0.1],['Weight kg',70]],inp=>{const r=N(inp['units/kg/h'].value)*N(inp['Weight kg'].value);return '= '+F(r)+' units/h';});
+card('dose','Heparin (units/h)',[['units/kg/h',18],['Weight kg',70]],inp=>{const r=N(inp['units/kg/h'].value)*N(inp['Weight kg'].value);return '= '+F(r)+' units/h';});
+card('dose','Vancomycin AUC24',[['Daily dose mg',2000],['CrCl mL/min',80]],inp=>{const cl=N(inp['CrCl mL/min'].value)*0.06;const auc=N(inp['Daily dose mg'].value)/cl;return 'CL='+F(cl)+' L/h  AUC24='+F(auc)+' mg·h/L  (target 400-600)';});
+card('dose','Aminoglycoside once-daily dose',[['Weight kg',70],['Dose mg/kg',7]],inp=>{const d=N(inp['Weight kg'].value)*N(inp['Dose mg/kg'].value);return 'Dose = '+F(d)+' mg';});
+
+card('vent','P/F Ratio (PaO2/FiO2)',[['PaO2 mmHg',90],['FiO2 (0.21-1.0)',0.4]],inp=>{const pf=N(inp['PaO2 mmHg'].value)/N(inp['FiO2 (0.21-1.0)'].value);return 'P/F = '+F(pf);});
+card('vent','Oxygenation Index (OI)',[['MAP cmH2O',12],['FiO2 (0.21-1.0)',0.5],['PaO2 mmHg',80]],inp=>{const oi=N(inp['MAP cmH2O'].value)*N(inp['FiO2 (0.21-1.0)'].value)*100/N(inp['PaO2 mmHg'].value);return 'OI = '+F(oi);});
+card('vent','RSBI (Rapid Shallow Breathing Index)',[['RR /min',24],['VT mL',400]],inp=>{const rsbi=N(inp['RR /min'].value)/(N(inp['VT mL'].value)/1000);return 'RSBI = '+F(rsbi)+' (target <105)';});
+card('vent','Driving Pressure',[['Pplat cmH2O',20],['PEEP cmH2O',8]],inp=>{return 'Driving pressure = '+F(N(inp['Pplat cmH2O'].value)-N(inp['PEEP cmH2O'].value))+' cmH2O';});
+card('vent','Static Compliance',[['VT mL',450],['Pplat cmH2O',20],['PEEP cmH2O',8]],inp=>{const c=N(inp['VT mL'].value)/(N(inp['Pplat cmH2O'].value)-N(inp['PEEP cmH2O'].value));return 'Cstat = '+F(c)+' mL/cmH2O';});
+card('vent','Minute Ventilation',[['RR /min',16],['VT mL',500]],inp=>{return 'MV = '+F(N(inp['RR /min'].value)*N(inp['VT mL'].value)/1000)+' L/min';});
+card('vent','Ideal Body Weight (IBW)',[['Height cm',170],['Sex (1=M,0=F)',1]],inp=>{const h=N(inp['Height cm'].value);const m=N(inp['Sex (1=M,0=F)'].value);const ibw=m?50+0.91*(h-152.4):45.5+0.91*(h-152.4);return 'IBW = '+F(ibw)+' kg';});
+card('vent','Tidal Volume (6-8 mL/kg IBW)',[['IBW kg',70],['mL/kg',6]],inp=>{return 'VT = '+F(N(inp['IBW kg'].value)*N(inp['mL/kg'].value))+' mL';});
+card('renal','CRRT Dose (mL/kg/h)',[['Effluent mL/h',2000],['Weight kg',70]],inp=>{return 'Dose = '+F(N(inp['Effluent mL/h'].value)/N(inp['Weight kg'].value))+' mL/kg/h';});
+card('renal','Urea Reduction Ratio (URR)',[['Pre BUN',60],['Post BUN',20]],inp=>{const urr=(N(inp['Pre BUN'].value)-N(inp['Post BUN'].value))/N(inp['Pre BUN'].value)*100;return 'URR = '+F(urr)+' %';});
+card('renal','Kt/V (Daugirdas)',[['Pre BUN',60],['Post BUN',20],['UF L',2],['Weight kg',70],['Time h',4]],inp=>{const r=N(inp['Post BUN'].value)/N(inp['Pre BUN'].value);const uf=N(inp['UF L'].value);const w=N(inp['Weight kg'].value);const ktv=-Math.log(r-0.008*N(inp['Time h'].value))+(4-3.5*r)*uf/w;return 'Kt/V = '+F(ktv);});
+card('renal','Free Water Deficit',[['Na',150],['Weight kg',70]],inp=>{const d=N(inp['Na'].value)-140;return 'FWD = '+F(0.6*N(inp['Weight kg'].value)*d/140)+' L';});
+card('renal','Anion Gap',[['Na',140],['Cl',100],['HCO3',24]],inp=>{return 'AG = '+F(N(inp['Na'].value)-N(inp['Cl'].value)-N(inp['HCO3'].value));});
+card('hemo','SVR (dynes)',[['MAP',80],['CVP',8],['CO L/min',5]],inp=>{return 'SVR = '+F((N(inp['MAP'].value)-N(inp['CVP'].value))/N(inp['CO L/min'].value)*80)+' dynes';});
+card('hemo','PVR (dynes)',[['mPAP',25],['PCWP',12],['CO L/min',5]],inp=>{return 'PVR = '+F((N(inp['mPAP'].value)-N(inp['PCWP'].value))/N(inp['CO L/min'].value)*80)+' dynes';});
+card('hemo','DO2 (mL/min)',[['CO L/min',5],['Hb',10],['SaO2 %',95]],inp=>{return 'DO2 = '+F(N(inp['CO L/min'].value)*N(inp['Hb'].value)*N(inp['SaO2 %'].value)*1.34*10)+' mL/min';});
+card('hemo','VO2 (mL/min)',[['CO L/min',5],['CaO2',18],['CvO2',14]],inp=>{return 'VO2 = '+F(N(inp['CO L/min'].value)*(N(inp['CaO2'].value)-N(inp['CvO2'].value))*10)+' mL/min';});
+card('scores','MELD',[['Bilirubin',2],['INR',1.5],['Creatinine',1.2]],inp=>{const b=Math.max(N(inp['Bilirubin'].value),1);const i=Math.max(N(inp['INR'].value),1);const c=Math.max(N(inp['Creatinine'].value),1);const meld=3.78*Math.log(b)+11.2*Math.log(i)+9.57*Math.log(c)+6.43;return 'MELD = '+F(meld);});
+card('scores','4C Mortality Score',[['Age points',1],['Sex (M=1)',1],['Comorbidities (0-10)',2],['RR',2],['SpO2',1],['GCS',0],['Urea',1],['CRP',1]],inp=>{const s=Object.values(inp).reduce((a,b)=>a+N(b.value),0);return '4C score = '+F(s);});
+card('dose','Norepinephrine (mcg/kg/min to mcg/min)',[['Dose mcg/kg/min',0.1],['Weight kg',70]],inp=>{return 'Rate = '+F(N(inp['Dose mcg/kg/min'].value)*N(inp['Weight kg'].value))+' mcg/min';});
+card('dose','Epinephrine (mcg/min)',[['Dose mcg/kg/min',0.1],['Weight kg',70]],inp=>{return 'Rate = '+F(N(inp['Dose mcg/kg/min'].value)*N(inp['Weight kg'].value))+' mcg/min';});
+card('dose','Dobutamine (mcg/kg/min to mcg/min)',[['Dose mcg/kg/min',5],['Weight kg',70]],inp=>{return 'Rate = '+F(N(inp['Dose mcg/kg/min'].value)*N(inp['Weight kg'].value))+' mcg/min';});
+card('dose','Dopamine (mcg/kg/min to mcg/min)',[['Dose mcg/kg/min',5],['Weight kg',70]],inp=>{return 'Rate = '+F(N(inp['Dose mcg/kg/min'].value)*N(inp['Weight kg'].value))+' mcg/min';});
+card('fluid','Maintenance Fluids (Holliday-Segar)',[['Weight kg',70]],inp=>{const w=N(inp['Weight kg'].value);const day=100*Math.min(w,10)+50*Math.max(0,Math.min(w-10,10))+20*Math.max(0,w-20);return '= '+F(day)+' mL/day  ('+F(day/24)+' mL/h)';});
+
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+</script>
+</body>
+</html>
