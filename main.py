@@ -358,7 +358,7 @@ def build_conv(parent):
 # ---------------- MAIN ----------------
 def main():
     root = tk.Tk()
-    root.title("Critical Care Calculator - ICU")
+    root.title("Critical Care Calculator - ICU | Developed by S.Mohammad team")
     try:
         ico = os.path.join(BASE, "logo.ico")
         if os.path.exists(ico):
