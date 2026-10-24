@@ -52,6 +52,7 @@ const TABS = [
   {id:'dose', name:'Dosing'},
   {id:'fluid', name:'Fluids/Nut'},
   {id:'conv', name:'Convert'},
+  {id:'formulas', name:'Formulas'},
 ];
 const content = document.getElementById('content');
 const tabsNav = document.getElementById('tabs');
@@ -95,6 +96,7 @@ function card(tabId,title,fields,calc,formula){
   c.appendChild(btn); c.appendChild(res);
   if(formula){const fm=document.createElement('div'); fm.className='formula'; fm.textContent='Formula: '+formula; c.appendChild(fm);}
   grid.appendChild(c);
+  (window.CARDS=window.CARDS||[]).push({tabId,title,calc});
 }
 
 
@@ -304,6 +306,18 @@ card('dose','Dopamine (mcg/kg/min to mcg/min)',[['Dose mcg/kg/min',5],['Weight k
 card('fluid','Maintenance Fluids (Holliday-Segar)',[['Weight kg',70]],inp=>{const w=N(inp['Weight kg'].value);const day=100*Math.min(w,10)+50*Math.max(0,Math.min(w-10,10))+20*Math.max(0,w-20);return '= '+F(day)+' mL/day  ('+F(day/24)+' mL/h)';});
 
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+
+function renderFormulas(){
+  const g=document.getElementById('grid-formulas');
+  if(!g) return;
+  (window.CARDS||[]).forEach(c=>{
+    const d=document.createElement('div'); d.className='card';
+    const h=document.createElement('h3'); h.textContent=c.title+' ('+c.tabId+')'; d.appendChild(h);
+    const pre=document.createElement('pre'); pre.style.fontSize='11px'; pre.style.whiteSpace='pre-wrap'; pre.textContent=c.calc.toString(); d.appendChild(pre);
+    g.appendChild(d);
+  });
+}
+renderFormulas();
 </script>
 <footer style="text-align:center;padding:12px;font-size:12px;color:#6b7280;">Developed by S.Mohammad team</footer>
 </body>
