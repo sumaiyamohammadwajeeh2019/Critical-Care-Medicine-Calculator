@@ -73,7 +73,7 @@ function showTab(id){
 }
 function N(v){ const x=parseFloat(v); return isNaN(x)?0:x; }
 function F(x,nd=2){ if(typeof x!=='number'||isNaN(x)||!isFinite(x)) return 'n/a'; return x.toFixed(nd); }
-function card(tabId,title,fields,calc){
+function card(tabId,title,fields,calc,formula){
   const grid=document.getElementById('grid-'+tabId);
   const c=document.createElement('div'); c.className='card';
   const h=document.createElement('h3'); h.textContent=title; c.appendChild(h);
@@ -93,8 +93,7 @@ function card(tabId,title,fields,calc){
   const res=document.createElement('div'); res.className='result';
   btn.onclick=()=>{ try{ res.textContent=calc(inputs); }catch(e){ res.textContent='Error: '+e.message; } };
   c.appendChild(btn); c.appendChild(res);
-  const fm=document.createElement('div'); fm.className='formula'; fm.textContent='Formula: '+calc.toString().replace(/\s+/g,' ');
-  c.appendChild(fm);
+  if(formula){const fm=document.createElement('div'); fm.className='formula'; fm.textContent='Formula: '+formula; c.appendChild(fm);}
   grid.appendChild(c);
 }
 
