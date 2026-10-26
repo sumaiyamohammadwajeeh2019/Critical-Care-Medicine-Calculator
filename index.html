@@ -55,6 +55,7 @@ const TABS = [
   {id:'conv', name:'Convert'},
   {id:'formulas', name:'Formulas'},
   {id:'meds', name:'Medicines'},
+  {id:'refs', name:'References'},
 ];
 const content = document.getElementById('content');
 const tabsNav = document.getElementById('tabs');
@@ -365,6 +366,39 @@ function renderMeds(){
   search.oninput=()=>render(search.value);
   render('');
 }
+function renderRefs(){
+  const g=document.getElementById('grid-refs');
+  if(!g) return;
+  g.innerHTML='';
+  const wrap=document.createElement('div');
+  wrap.style.gridColumn='1 / -1';
+  const refs=[
+    ['BNF (British National Formulary)','https://bnf.nice.org.uk/'],
+    ['MIMS (Monthly Index of Medical Specialties)','https://www.mims.com/'],
+    ['BNFF (Bangladesh National Formulary)','https://dghs.gov.bd/'],
+    ['Martindale: The Complete Drug Reference','https://www.pharmpress.com/'],
+    ['Lexicomp (UpToDate)','https://www.wolterskluwer.com/en/solutions/lexicomp'],
+    ['Medscape Drug Reference','https://reference.medscape.com/drugs'],
+    ['Drugs.com','https://www.drugs.com/'],
+    ['ICU / Critical Care guidelines (SCCM)','https://www.sccm.org/'],
+    ['Surviving Sepsis Campaign','https://www.sccm.org/SurvivingSepsisCampaign'],
+    ['WHO Essential Medicines List','https://www.who.int/medicines/'],
+  ];
+  const title=document.createElement('h3'); title.textContent='References & Drug Information Sources'; title.style.color='#1a3a6b'; wrap.appendChild(title);
+  const ul=document.createElement('ul');
+  refs.forEach(([name,url])=>{
+    const li=document.createElement('li');
+    const a=document.createElement('a'); a.href=url; a.target='_blank'; a.textContent=name; a.style.color='#1f6fa3';
+    li.appendChild(a); ul.appendChild(li);
+  });
+  wrap.appendChild(ul);
+  const note=document.createElement('p');
+  note.style.fontSize='12px'; note.style.color='#6b7280';
+  note.textContent='Prices are indicative Bangladeshi market prices (BDT) and may vary by pharmacy/brand. Always verify dosing with current references and local guidelines.';
+  wrap.appendChild(note);
+  g.appendChild(wrap);
+}
+renderRefs();
 renderMeds();
 renderFormulas();
 </script>
