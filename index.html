@@ -329,13 +329,13 @@ function renderMeds(){
   search.type='text'; search.placeholder='Search generic name...';
   search.style.cssText='width:100%;padding:8px;margin-bottom:10px;border:1px solid #cfd8e6;border-radius:6px;';
   wrap.appendChild(search);
+  const detail=document.createElement('div');
+  detail.style.cssText='margin-bottom:10px;padding:12px;border:1px solid #dde3ee;border-radius:8px;background:#fff;white-space:pre-wrap;font-size:13px;';
+  detail.textContent='Select a medicine to view details.';
+  wrap.appendChild(detail);
   const list=document.createElement('div');
   list.style.cssText='max-height:420px;overflow:auto;border:1px solid #dde3ee;border-radius:8px;';
   wrap.appendChild(list);
-  const detail=document.createElement('div');
-  detail.style.cssText='margin-top:10px;padding:12px;border:1px solid #dde3ee;border-radius:8px;background:#fff;white-space:pre-wrap;font-size:13px;';
-  detail.textContent='Select a medicine to view details.';
-  wrap.appendChild(detail);
   g.appendChild(wrap);
 
   function show(m){
