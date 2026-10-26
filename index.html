@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Critical Care Calculator - ICU</title>
+<title>ICU-Critical Care Software</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a3a6b">
 <style>
@@ -35,13 +35,14 @@ main{padding:16px;max-width:980px;margin:0 auto;}
 <header>
   <img src="logo.png" alt="ICU logo">
   <div>
-    <h1>Critical Care Calculator</h1>
+    <h1>ICU-Critical Care Software</h1>
     <small>For ICU / Critical Care Medicine</small>
   </div>
 </header>
 <nav class="tabs" id="tabs"></nav>
 <main id="content"></main>
 
+<script src="medicines.js"></script>
 <script>
 const TABS = [
   {id:'scores', name:'Scores'},
@@ -53,6 +54,7 @@ const TABS = [
   {id:'fluid', name:'Fluids/Nut'},
   {id:'conv', name:'Convert'},
   {id:'formulas', name:'Formulas'},
+  {id:'meds', name:'Medicines'},
 ];
 const content = document.getElementById('content');
 const tabsNav = document.getElementById('tabs');
@@ -317,8 +319,55 @@ function renderFormulas(){
     g.appendChild(d);
   });
 }
+function renderMeds(){
+  const g=document.getElementById('grid-meds');
+  if(!g) return;
+  g.innerHTML='';
+  const wrap=document.createElement('div');
+  wrap.style.gridColumn='1 / -1';
+  const search=document.createElement('input');
+  search.type='text'; search.placeholder='Search generic name...';
+  search.style.cssText='width:100%;padding:8px;margin-bottom:10px;border:1px solid #cfd8e6;border-radius:6px;';
+  wrap.appendChild(search);
+  const list=document.createElement('div');
+  list.style.cssText='max-height:420px;overflow:auto;border:1px solid #dde3ee;border-radius:8px;';
+  wrap.appendChild(list);
+  const detail=document.createElement('div');
+  detail.style.cssText='margin-top:10px;padding:12px;border:1px solid #dde3ee;border-radius:8px;background:#fff;white-space:pre-wrap;font-size:13px;';
+  detail.textContent='Select a medicine to view details.';
+  wrap.appendChild(detail);
+  g.appendChild(wrap);
+
+  function show(m){
+    let html='Generic: '+m.generic+'\n';
+    html+='Dose: '+m.dose+'\n';
+    html+='Indication: '+m.indication+'\n';
+    html+='Contraindication: '+m.contraindication+'\n';
+    html+='Pregnancy Category: '+m.pregnancy_category+'\n';
+    html+='Drug Interactions: '+m.drug_interactions.join(', ')+'\n\n';
+    html+='Companies & Market Price (BDT):\n';
+    m.companies.forEach(c=>{ html+='  - '+c.company+': '+c.price_bdt+'\n'; });
+    detail.textContent=html;
+  }
+
+  function render(q){
+    list.innerHTML='';
+    (window.MEDS||[]).filter(m=>m.generic.toLowerCase().includes(q.toLowerCase())).forEach(m=>{
+      const row=document.createElement('div');
+      row.textContent=m.generic;
+      row.style.cssText='padding:8px 10px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
+      row.onmouseenter=()=>row.style.background='#eef3fa';
+      row.onmouseleave=()=>row.style.background='';
+      row.onclick=()=>show(m);
+      list.appendChild(row);
+    });
+  }
+  search.oninput=()=>render(search.value);
+  render('');
+}
+renderMeds();
 renderFormulas();
 </script>
-<footer style="text-align:center;padding:12px;font-size:12px;color:#6b7280;">Developed by S.Mohammad team</footer>
+<footer style="text-align:center;padding:12px;font-size:12px;color:#6b7280;">Developed by Dr Sumaiya Mohammad, SMRR Team, Bangladesh</footer>
 </body>
 </html>

@@ -1,41 +1,51 @@
 import os
 from PIL import Image, ImageDraw, ImageFont
 
-W, H = 256, 256
+W, H = 512, 512
 img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 d = ImageDraw.Draw(img)
 
-# background rounded circle
 cx, cy = W // 2, H // 2
-r = 118
+
+# outer glow circle
+for i in range(6, 0, -1):
+    d.ellipse((cx-130-i*4, cy-130-i*4, cx+130+i*4, cy+130+i*4), fill=(31, 111, 163, 18))
+
+# main rounded circle gradient-ish
+r = 124
 d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(15, 76, 129, 255))
 
-# medical cross
+# inner ring
+d.ellipse((cx - r + 8, cy - r + 8, cx + r - 8, cy + r - 8), outline=(255, 255, 255, 120), width=3)
+
+# medical cross (rounded feel via rectangles)
 cross_color = (255, 255, 255, 255)
-arm = 34
-thick = 26
-# vertical
+arm = 46
+thick = 22
 d.rectangle((cx - thick//2, cy - arm, cx + thick//2, cy + arm), fill=cross_color)
-# horizontal
 d.rectangle((cx - arm, cy - thick//2, cx + arm, cy + thick//2), fill=cross_color)
 
-# subtle ring
-d.ellipse((cx - r + 6, cy - r + 6, cx + r - 6, cy + r - 6), outline=(255, 255, 255, 90), width=3)
+# ECG heartbeat line across bottom
+ecg = [(cx-90, cy+70),(cx-60, cy+70),(cx-45, cy+40),(cx-30, cy+95),(cx-10, cy+70),(cx+20, cy+70),(cx+40, cy+50),(cx+60, cy+70),(cx+90, cy+70)]
+for i in range(len(ecg)-1):
+    d.line((ecg[i], ecg[i+1]), fill=(120, 220, 255, 230), width=4)
 
-# text below cross inside circle? put small "ICU" 
+# ICU text
 try:
-    font = ImageFont.truetype("arial.ttf", 26)
+    font = ImageFont.truetype("arial.ttf", 30)
 except Exception:
     font = ImageFont.load_default()
 text = "ICU"
 bbox = d.textbbox((0, 0), text, font=font)
-tw = bbox[2] - bbox[0]
-th = bbox[3] - bbox[1]
-d.text((cx - tw // 2, cy + arm + 8), text, fill=(255, 255, 255, 230), font=font)
+tw = bbox[2]-bbox[0]; th = bbox[3]-bbox[1]
+d.text((cx - tw//2, cy - arm - th - 12), text, fill=(255,255,255,230), font=font)
 
 # save
-out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
+base = os.path.dirname(os.path.abspath(__file__))
+out = os.path.join(base, "logo.png")
 img.save(out)
 print("saved", out)
-img.save(os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.ico"))
+# ico (resize)
+ico = img.resize((256,256))
+ico.save(os.path.join(base, "logo.ico"))
 print("done")

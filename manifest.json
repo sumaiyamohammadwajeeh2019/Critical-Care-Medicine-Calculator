@@ -1,6 +1,6 @@
 {
-  "name": "Critical Care Calculator",
-  "short_name": "ICU Calc",
+  "name": "ICU-Critical Care Software",
+  "short_name": "ICU Care",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#f4f7fb",

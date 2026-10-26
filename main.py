@@ -358,7 +358,7 @@ def build_conv(parent):
 # ---------------- MAIN ----------------
 def main():
     root = tk.Tk()
-    root.title("Critical Care Calculator - ICU | Developed by S.Mohammad team")
+    root.title("ICU-Critical Care Software | Developed by Dr Sumaiya Mohammad, SMRR Team, Bangladesh")
     try:
         ico = os.path.join(BASE, "logo.ico")
         if os.path.exists(ico):
@@ -379,8 +379,8 @@ def main():
         lbl.pack(side="left", padx=(0, 10))
     except Exception:
         pass
-    ttk.Label(hdr, text="Critical Care Calculator", font=("Segoe UI", 16, "bold")).pack(side="left")
-    ttk.Label(hdr, text="For ICU / Critical Care Medicine", font=("Segoe UI", 9)).pack(side="left", padx=8)
+    ttk.Label(hdr, text="ICU-Critical Care Software", font=("Segoe UI", 16, "bold")).pack(side="left")
+    ttk.Label(hdr, text="Developed by Dr Sumaiya Mohammad, SMRR Team, Bangladesh", font=("Segoe UI", 9)).pack(side="left", padx=8)
 
     nb = ttk.Notebook(root)
     nb.pack(fill="both", expand=True, padx=6, pady=6)
